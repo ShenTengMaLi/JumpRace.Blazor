@@ -1,0 +1,24 @@
+{
+  "name": "Jump Race Master Pro - Dual Lane",
+  "short_name": "JumpRace",
+  "description": "双人跳跃竞速游戏 - Dual Lane Jump Race",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "landscape",
+  "icons": [
+    {
+      "src": "img/1.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "img/1.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
