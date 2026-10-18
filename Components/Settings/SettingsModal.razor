@@ -1,0 +1,94 @@
+@inject GameService Game
+@inject IJSRuntime JS
+
+<div class="modal" style="display: flex;">
+    <div class="modal-content">
+        <h2>Game Settings</h2>
+
+        <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap: wrap; background: #2a2a2a; padding: 15px; border-radius: 10px; align-items: flex-end;">
+            <div>
+                <label>Goal Steps (Max 1000): </label>
+                <input type="number" @bind="Game.Config.Goal" min="10" max="1000" />
+            </div>
+            <div>
+                <label>Block Opacity: </label>
+                <input type="range" @bind="Game.Config.TileOpacity" min="0.1" max="1" step="0.05" style="width: 100px; display: block;" />
+            </div>
+            <div>
+                <label>Scene Effect: </label>
+                <select @bind="Game.Config.SceneEffect">
+                    <option value="none">None</option>
+                    <option value="rain">🌧️ Rain</option>
+                    <option value="snow">❄️ Snow</option>
+                    <option value="bubbles">🫧 Bubbles</option>
+                    <option value="hearts">❤️ Floating Hearts</option>
+                    <option value="stars">✨ Twinkling Stars</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="config-grid">
+            @for (int i = 0; i < Game.Config.Players.Count; i++)
+            {
+                var idx = i;
+                var p = Game.Config.Players[idx];
+                <div class="config-item">
+                    <div style="font-weight:bold; color:white; border-bottom:1px solid #555; padding-bottom:5px;">
+                        Lane @(idx + 1) (Key @(idx + 1))
+                    </div>
+                    <input type="text" @bind="p.Name" placeholder="Player Name" />
+                    <input type="color" @bind="p.Color" />
+                    <div>
+                        <label style="font-size:10px; color:#aaa;">Ready (Static) URL:</label>
+                        <input type="text" @bind="p.Img" placeholder="img/1.png" />
+                    </div>
+                    <div>
+                        <label style="font-size:10px; color:#aaa;">Jump (GIF) URL:</label>
+                        <input type="text" @bind="p.JumpImg" placeholder="img/gs1.png" />
+                    </div>
+                    <div style="font-size:10px; color:#aaa; margin-top:5px;">Gifts Config:</div>
+                    @for (int g = 0; g < 3; g++)
+                    {
+                        var gIdx = g;
+                        <div class="gift-cfg-unit">
+                            <input type="text" @bind="p.Gifts[gIdx]" placeholder="Gift image URL" />
+                            <input type="text" @bind="p.GiftTexts[gIdx]" placeholder="Label" />
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="btn-group">
+            <button class="btn btn-reset" @onclick="ResetDefaults">Reset Defaults</button>
+            <button class="btn btn-clear-score" @onclick="ClearScores">Clear Scores</button>
+            <button class="btn btn-close" @onclick="OnClose">Close</button>
+            <button class="btn btn-save" @onclick="Save">Save & Apply</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public EventCallback OnClose { get; set; }
+
+    private async Task Save()
+    {
+        Game.Config.Goal = Math.Clamp(Game.Config.Goal, 10, 1000);
+        await Game.SaveConfigAsync();
+        await JS.InvokeVoidAsync("gameInterop.initSceneEffect", Game.Config.SceneEffect);
+        await OnClose.InvokeAsync();
+        // Force re-render of lanes with new goal
+        Game.ResetRuntimeState();
+    }
+
+    private async Task ClearScores()
+    {
+        await Game.ResetScoresAsync();
+    }
+
+    private async Task ResetDefaults()
+    {
+        await Game.ResetToDefaultAsync();
+        await OnClose.InvokeAsync();
+    }
+}

@@ -1,0 +1,53 @@
+@inject GameService Game
+@implements IDisposable
+
+<div class="header" id="game-header">
+    @for (int i = 0; i < Game.Config.Players.Count; i++)
+    {
+        var p = Game.Config.Players[i];
+        var runtime = Game.State.Players.ElementAtOrDefault(i);
+        var maxWins = Game.Config.Players.Max(x => x.Wins);
+        var isWinner = p.Wins > 0 && p.Wins == maxWins;
+        var progress = runtime != null && Game.Config.Goal > 0
+            ? (runtime.Current * 100.0 / Game.Config.Goal)
+            : 0;
+
+        <div class="stat-column @(isWinner ? "is-winner" : "")">
+            <div class="stat-box" style="background:@p.Color">
+                <img src="@p.Img" alt="@p.Name" />
+                <span>@p.Name: <span>@p.Wins</span></span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-bar" style="background:@p.Color; width:@(progress.ToString("F1"))%"></div>
+            </div>
+            <div class="gift-row">
+                @for (int g = 0; g < 3; g++)
+                {
+                    <div class="gift-unit">
+                        @if (!string.IsNullOrEmpty(p.Gifts.ElementAtOrDefault(g)))
+                        {
+                            <img src="@p.Gifts[g]" class="gift-icon" alt="gift" />
+                        }
+                        else
+                        {
+                            <div style="width:30px;height:30px;"></div>
+                        }
+                        <div class="gift-text">@(p.GiftTexts.ElementAtOrDefault(g) ?? "")</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    protected override void OnInitialized()
+    {
+        Game.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Game.OnStateChanged -= StateHasChanged;
+    }
+}

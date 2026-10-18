@@ -1,0 +1,59 @@
+@inject GameService Game
+@implements IDisposable
+
+<div class="lane" id="lane-@PlayerIndex" style="--lane-color: @Player.Color">
+    <div class="lane-bg" id="bg-@PlayerIndex" style="transform: translateY(@(Runtime.Current * 130)px)">
+        @* Generate tiles *@
+        @for (int j = -1; j <= Game.Config.Goal; j++)
+        {
+            var isActive = j == Runtime.Current;
+            var isGoal = j == Game.Config.Goal;
+            var offset = Math.Sin(j * 0.2) * 45;
+
+            <div class="tile @Game.Config.TileShape @(isGoal ? "goal-tile" : "") @(isActive ? "active" : "")"
+                 id="tile-@PlayerIndex-@j"
+                 style="bottom: @((j + 1) * 130)px;
+                        left: calc(5% + @(offset.ToString("F1"))px);
+                        --t-color: @Player.Color;
+                        --t-color-dark: @Darken(Player.Color, 40);
+                        opacity: @Game.Config.TileOpacity.ToString("F2");">
+                @if (j < 0) { }
+                else if (isGoal) { <text>GOAL</text> }
+                else { @j }
+            </div>
+        }
+    </div>
+
+    <Character PlayerIndex="PlayerIndex" />
+</div>
+
+@code {
+    [Parameter] public int PlayerIndex { get; set; }
+
+    private PlayerConfig Player => Game.Config.Players[PlayerIndex];
+    private PlayerRuntimeState Runtime => Game.State.Players[PlayerIndex];
+
+    protected override void OnInitialized()
+    {
+        Game.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Game.OnStateChanged -= StateHasChanged;
+    }
+
+    private static string Darken(string hex, int amt)
+    {
+        if (string.IsNullOrEmpty(hex) || hex[0] != '#') return hex;
+        hex = hex[1..];
+        if (hex.Length == 3) hex = string.Concat(hex.Select(c => $"{c}{c}"));
+        if (hex.Length != 6) return "#" + hex;
+
+        int num = Convert.ToInt32(hex, 16);
+        int r = Math.Max(0, (num >> 16) - amt);
+        int g = Math.Max(0, ((num >> 8) & 0xFF) - amt);
+        int b = Math.Max(0, (num & 0xFF) - amt);
+        return $"#{r:X2}{g:X2}{b:X2}";
+    }
+}
