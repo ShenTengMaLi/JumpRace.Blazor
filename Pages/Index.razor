@@ -1,0 +1,138 @@
+@page "/"
+@inject GameService Game
+@inject AudioService Audio
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<PageTitle>Jump Race Master Pro - Dual Lane</PageTitle>
+
+<div id="app-bg">
+    @if (Game.Config.Backgrounds.Count > 0)
+    {
+        var idx = Game.State.CurrentBgIdx % Game.Config.Backgrounds.Count;
+        var src = Game.Config.Backgrounds[idx];
+        var type = Game.Config.BgTypes.ElementAtOrDefault(idx) ?? "image";
+
+        @if (type == "video")
+        {
+            <video src="@src" autoplay loop muted playsinline></video>
+        }
+        else
+        {
+            <img src="@src" alt="background" />
+        }
+    }
+</div>
+
+<canvas id="scene-overlay"></canvas>
+
+<ProgressHeader />
+
+<div class="game-container" id="game-container">
+    @for (int i = 0; i < Game.Config.Players.Count; i++)
+    {
+        <Lane PlayerIndex="i" />
+    }
+</div>
+
+@* ===== 移动端触摸按钮 ===== *@
+<div class="touch-controls">
+    <button class="touch-btn touch-btn-left"
+            style="--btn-color: @(Game.Config.Players.ElementAtOrDefault(0)?.Color ?? "#ff00c8")"
+            @ontouchstart="() => OnTouchJump(0)"
+            @onmousedown="() => OnTouchJump(0)">
+        <span class="touch-btn-label">@(Game.Config.Players.ElementAtOrDefault(0)?.Name ?? "1")</span>
+        <span class="touch-btn-key">JUMP</span>
+    </button>
+    <button class="touch-btn touch-btn-right"
+            style="--btn-color: @(Game.Config.Players.ElementAtOrDefault(1)?.Color ?? "#007bff")"
+            @ontouchstart="() => OnTouchJump(1)"
+            @onmousedown="() => OnTouchJump(1)">
+        <span class="touch-btn-label">@(Game.Config.Players.ElementAtOrDefault(1)?.Name ?? "2")</span>
+        <span class="touch-btn-key">JUMP</span>
+    </button>
+</div>
+
+<button id="settings-btn" @onclick="() => _showSettings = true">❤️</button>
+
+@if (_showSettings)
+{
+    <SettingsModal OnClose="() => _showSettings = false" />
+}
+
+@if (Game.State.IsGameOver && Game.State.WinnerIndex.HasValue)
+{
+    <WinOverlay WinnerIndex="Game.State.WinnerIndex.Value" />
+}
+
+<canvas id="confetti"></canvas>
+
+@code {
+    private bool _showSettings;
+    private DotNetObjectReference<Index>? _objRef;
+    private PeriodicTimer? _bgTimer;
+    private CancellationTokenSource? _cts;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Game.OnStateChanged += StateHasChanged;
+        await Game.InitializeAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("gameInterop.registerKeys", _objRef);
+            await JS.InvokeVoidAsync("gameInterop.initSceneEffect", Game.Config.SceneEffect);
+            await JS.InvokeVoidAsync("gameInterop.enableMobileGuard");
+
+            // Background rotation every 40s
+            _cts = new CancellationTokenSource();
+            _bgTimer = new PeriodicTimer(TimeSpan.FromSeconds(40));
+            _ = RotateBackgroundAsync(_cts.Token);
+        }
+    }
+
+    [JSInvokable]
+    public async Task OnKeyPressed(string key)
+    {
+        await Audio.ResumeAudioContextAsync();
+
+        if (key == "1") await Game.JumpAsync(0);
+        else if (key == "2") await Game.JumpAsync(1);
+    }
+
+    private async Task OnTouchJump(int playerIndex)
+    {
+        await Audio.ResumeAudioContextAsync();
+        await Game.JumpAsync(playerIndex);
+    }
+
+    private async Task RotateBackgroundAsync(CancellationToken ct)
+    {
+        try
+        {
+            while (await _bgTimer!.WaitForNextTickAsync(ct))
+            {
+                if (Game.Config.Backgrounds.Count > 1)
+                {
+                    Game.State.CurrentBgIdx = (Game.State.CurrentBgIdx + 1) % Game.Config.Backgrounds.Count;
+                    await InvokeAsync(StateHasChanged);
+                }
+            }
+        }
+        catch (OperationCanceledException) { }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        Game.OnStateChanged -= StateHasChanged;
+        _cts?.Cancel();
+        _bgTimer?.Dispose();
+        _cts?.Dispose();
+        _objRef?.Dispose();
+        await Task.CompletedTask;
+    }
+}
