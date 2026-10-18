@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Jump Race Master Pro - Dual Lane</title>
+    <base href="/" />
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="JumpRace" />
+    <link rel="apple-touch-icon" href="img/1.png" />
+
+    <link href="css/app.css" rel="stylesheet" />
+    <link href="JumpRace.Blazor.styles.css" rel="stylesheet" />
+</head>
+
+<body>
+    <div id="app">
+        <div style="position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#000;color:#fff;font-family:sans-serif;">
+            Loading Jump Race...
+        </div>
+    </div>
+
+    <div id="blazor-error-ui">
+        An unhandled error has occurred.
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.webassembly.js"></script>
+    <script src="js/game-interop.js"></script>
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' })
+                .then(reg => console.log('Service Worker registered', reg.scope))
+                .catch(err => console.warn('Service Worker registration failed', err));
+        }
+    </script>
+</body>
+
+</html>
