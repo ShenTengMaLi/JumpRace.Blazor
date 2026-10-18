@@ -1,0 +1,31 @@
+@inject GameService Game
+@implements IDisposable
+
+@{
+    var player = Game.Config.Players[PlayerIndex];
+    var runtime = Game.State.Players[PlayerIndex];
+    var offset = Math.Sin(runtime.Current * 0.2) * 45;
+    var img = runtime.IsJumping && !string.IsNullOrEmpty(player.JumpImg)
+        ? player.JumpImg
+        : player.Img;
+}
+
+<div class="character @(runtime.IsLeader ? "leader" : "") @(runtime.IsJumping ? "jumping" : "")"
+     id="char-@PlayerIndex"
+     style="background-image: url('@img'); left: calc(50% + @(offset.ToString("F1"))px);">
+    <div class="spotlight"></div>
+</div>
+
+@code {
+    [Parameter] public int PlayerIndex { get; set; }
+
+    protected override void OnInitialized()
+    {
+        Game.OnStateChanged += StateHasChanged;
+    }
+
+    public void Dispose()
+    {
+        Game.OnStateChanged -= StateHasChanged;
+    }
+}

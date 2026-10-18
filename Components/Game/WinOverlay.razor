@@ -1,0 +1,27 @@
+@inject GameService Game
+@inject IJSRuntime JS
+@implements IAsyncDisposable
+
+<div id="win-overlay" style="display: flex;">
+    <img id="win-avatar" src="@Winner.Img" alt="@Winner.Name" />
+    <div id="win-text" style="color: @Winner.Color">@Winner.Name WINS!</div>
+</div>
+
+@code {
+    [Parameter] public int WinnerIndex { get; set; }
+
+    private PlayerConfig Winner => Game.Config.Players[WinnerIndex];
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await JS.InvokeVoidAsync("gameInterop.startConfetti");
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await JS.InvokeVoidAsync("gameInterop.stopConfetti");
+    }
+}
